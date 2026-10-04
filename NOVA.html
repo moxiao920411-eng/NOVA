@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVA · 本機智慧助理</title>
+<style>
+:root{color-scheme:dark;--bg:#121620;--panel:#1b2230;--panel2:#202a3b;--line:#5cd2ff;--muted:#91a0b7;--accent:#2f8ba4;--danger:#963f55}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#1d3144 0,#121620 45%);color:#eef4fb;font-family:"Microsoft JhengHei UI","Segoe UI",sans-serif;min-height:100vh;overflow:hidden}
+.app{width:min(1180px,100vw);height:100vh;max-height:100vh;margin:auto;padding:24px 28px;display:grid;grid-template-columns:minmax(0,1fr) 270px;grid-template-rows:auto minmax(0,1fr) auto;gap:18px}
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between}.brand{font-size:32px;font-weight:800;letter-spacing:5px;color:var(--line)}.subtitle{margin-top:4px;color:var(--muted);font-size:14px}.header-actions{display:flex;gap:10px}
+button{border:1px solid #466079;background:#3d485c;color:white;border-radius:6px;padding:9px 14px;font:inherit;cursor:pointer;transition:filter .15s,transform .15s}button:hover{filter:brightness(1.18)}button:active{transform:translateY(1px)}button.primary{background:var(--accent)}button.voice{background:#56437e}button.voice.active{background:var(--danger)}
+.chat{min-height:0;background:rgba(28,34,47,.94);border:1px solid #26384a;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.chat-log{min-height:0;flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;padding:18px}.chat-log::-webkit-scrollbar{width:10px}.chat-log::-webkit-scrollbar-track{background:#171e2b}.chat-log::-webkit-scrollbar-thumb{background:#466079;border-radius:8px;border:2px solid #171e2b}.msg{margin:0 0 14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}.msg .who{font-weight:700;color:var(--line);margin-right:8px}.msg.user .who{color:#f2bd78}.msg.error .who{color:#ff8e9d}.composer{display:flex;gap:10px;padding:12px;border-top:1px solid #2c3a4c;background:#171e2b}.composer input{min-width:0;flex:1;background:#252e3e;color:white;border:1px solid #43536a;border-radius:6px;padding:10px 12px;font:inherit;outline:none}.composer input:focus{border-color:var(--line)}
+.side{background:rgba(24,29,41,.96);border:1px solid #26384a;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}.side h2{font-size:18px;margin:0}.cube-wrap{height:205px;background:#121825;border-radius:8px;display:grid;place-items:center;border:1px solid #26384a}.cube-wrap canvas{width:100%;height:100%}.status{color:#f2bd78;min-height:42px;line-height:1.45;font-size:13px;word-break:break-word}.habit{flex:1;min-height:140px;resize:none;background:#222a3a;color:#d9e4f1;border:0;border-radius:6px;padding:10px;font:13px/1.5 inherit}.side button{width:100%}.meta{font-size:12px;color:var(--muted);word-break:break-all}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.64);display:none;align-items:center;justify-content:center;padding:20px;z-index:5}.modal-backdrop.open{display:flex}.modal{width:min(440px,100%);max-height:calc(100vh - 40px);overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;background:#202a3b;border:1px solid #49617a;border-radius:10px;padding:22px;box-shadow:0 20px 80px #000}.modal h3{margin:0 0 12px}.modal p{color:#b9c6d8;font-size:13px;line-height:1.5}.modal label{display:block;margin:12px 0 6px;font-size:13px}.modal input{width:100%;padding:10px;background:#121825;color:white;border:1px solid #4a6077;border-radius:6px;font:inherit}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.modal .result{min-height:20px;color:#f2bd78;font-size:13px;margin-top:10px}
+.reset-hotspot{position:fixed;right:0;bottom:0;width:24px;height:24px;padding:0;border:0;border-radius:0;background:transparent;opacity:.06;z-index:4}.reset-hotspot:hover{opacity:.12}
+@media(max-width:820px){body{overflow:auto}.app{height:auto;max-height:none;grid-template-columns:1fr;grid-template-rows:auto auto auto auto}.side{min-height:460px}.chat{min-height:520px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div><div class="brand">NOVA</div><div class="subtitle">本機優先 · 後端狀態即時映射 · 可控權限 · 逐步學習</div></div>
+    <div class="header-actions"><button id="passphraseButton" disabled>設定密語</button></div>
+  </header>
+  <section class="chat">
+    <div id="chatLog" class="chat-log" aria-live="polite"></div>
+    <div class="composer"><input id="commandInput" disabled autocomplete="off" placeholder="請先啟動後端 CMD"/><button id="sendButton" class="primary" disabled>送出</button></div>
+  </section>
+  <aside class="side">
+    <h2>後端監聽狀態</h2>
+    <div class="cube-wrap"><canvas id="cubeCanvas" aria-label="NOVA 3D 狀態指示器"></canvas></div>
+    <div id="status" class="status">正在連線到本機後端…</div>
+    <textarea id="habit" class="habit" readonly>讀取本機習慣資料中…</textarea>
+    <button id="voiceButton" class="voice" disabled>啟動語音（開始收音）</button>
+    <button id="refreshButton" disabled>重新分析習慣</button>
+    <button id="exportMemoryButton" disabled>匯出長期記憶 JSON</button>
+    <button id="openDataButton" disabled>開啟本機資料夾</button>
+    <div id="meta" class="meta"></div>
+  </aside>
+</main>
+
+<button id="resetHotspot" class="reset-hotspot" aria-label="測試入口"></button>
+
+<div id="resetModal" class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">
+  <h3>測試重置</h3><p>此操作會清除長期記憶、習慣紀錄與白名單密語，且無法復原。請輸入測試驗證碼。</p>
+  <label for="resetCode">驗證碼</label><input id="resetCode" type="password" inputmode="numeric" maxlength="3" autocomplete="off">
+  <div id="resetResult" class="result"></div><div class="modal-actions"><button id="resetCancel">取消</button><button id="resetSubmit" class="primary">確認重置</button></div>
+</div></div>
+
+<div id="passphraseModal" class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">
+  <h3>設定 NOVA 白名單密語</h3><p>密語只會以 SHA-256 雜湊儲存在本機。語音驗證時，請盡量逐字說出相同內容，例如「A B C D 1 2 3 4」。</p>
+  <div id="passphraseCurrentGroup"><label for="passphraseCurrent">前次密語</label><input id="passphraseCurrent" type="password" autocomplete="current-password"></div>
+  <div id="passphraseNewGroup"><label for="passphraseFirst">輸入新密語</label><input id="passphraseFirst" type="password" autocomplete="new-password">
+  <label for="passphraseSecond">再次輸入新密語</label><input id="passphraseSecond" type="password" autocomplete="new-password"></div>
+  <div id="passphraseResult" class="result"></div><div class="modal-actions"><button id="passphraseCancel">取消</button><button id="passphraseVerify" class="primary">驗證前次密語</button><button id="passphraseSave" class="primary">儲存密語</button></div>
+</div></div>
+
+<div id="consentModal" class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">
+  <h3>第一次啟動設定</h3><p>NOVA 是否可以搜尋目前 Windows 使用者有權限讀取的本機固定磁碟檔案與資料夾？搜尋結果只留在本機，不會繞過系統 ACL。</p>
+  <div class="modal-actions"><button id="consentNo">拒絕</button><button id="consentYes" class="primary">允許搜尋</button></div>
+</div></div>
+
+<script>
+'use strict';
+const state={cubeAngle:0,cubePaused:false,voiceRunning:false,backendReady:false,passphraseConfigured:false,passphraseUnlocked:false};
+const byId=id=>document.getElementById(id);
+const chatLog=byId('chatLog'),commandInput=byId('commandInput'),statusLabel=byId('status'),habitBox=byId('habit'),meta=byId('meta'),voiceButton=byId('voiceButton');
+const backendControls=['commandInput','sendButton','voiceButton','refreshButton','exportMemoryButton','openDataButton','passphraseButton'].map(byId);
+function setBackendReady(ready){state.backendReady=!!ready;for(const control of backendControls)if(control)control.disabled=!state.backendReady;if(state.backendReady)commandInput.placeholder='輸入指令，例如：開啟記事本';}
+function escapeText(value){return String(value??'')}
+function addChat(who,message,kind=''){const row=document.createElement('div');row.className='msg '+kind;const label=document.createElement('span');label.className='who';label.textContent='['+who+']';const content=document.createElement('span');content.textContent=' '+escapeText(message);row.append(label,content);chatLog.appendChild(row);chatLog.scrollTop=chatLog.scrollHeight}
+function setStatus(message){const text=String(message??'');statusLabel.textContent=text;state.cubePaused=/正在收音|正在辨識|已喚醒|辨識到：/.test(text);if(/語音已啟動|啟動中|持續監聽中|等待「嘿 NOVA」|已就緒/.test(text))state.cubePaused=false;if(/語音已停止|程序已停止|啟動失敗/.test(text))state.cubePaused=false}
+async function api(path,options={}){const response=await fetch(path,{headers:{'Content-Type':'application/json; charset=utf-8',...(options.headers||{})},...options});let data=null;try{data=await response.json()}catch{}if(!response.ok||!data||data.ok===false)throw new Error((data&&data.message)||('HTTP '+response.status));return data}
+async function speak(message){try{await api('/api/tts',{method:'POST',body:JSON.stringify({text:message})})}catch(error){if(state.backendReady)addChat('NOVA','語音播報失敗：'+error.message,'error')}}
+function drawCube(){const canvas=byId('cubeCanvas'),rect=canvas.getBoundingClientRect(),scale=window.devicePixelRatio||1,w=Math.max(1,Math.floor(rect.width*scale)),h=Math.max(1,Math.floor(rect.height*scale));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const ctx=canvas.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,rect.width,rect.height);if(!state.cubePaused)state.cubeAngle+=.018;const vertices=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],ay=state.cubeAngle,ax=state.cubeAngle*.63,sy=Math.sin(ay),cy=Math.cos(ay),sx=Math.sin(ax),cx=Math.cos(ax),points=[];for(const [x,y,z] of vertices){const rx=x*cy-z*sy,rz=x*sy+z*cy,ry=y*cx-rz*sx,rz2=y*sx+rz*cx,sc=54/(3.8+rz2);points.push([rect.width/2+rx*sc,rect.height/2+ry*sc])}const color=state.cubePaused?'#ffb85c':'#5cd2ff';ctx.strokeStyle=color;ctx.lineWidth=2;ctx.shadowColor=color;ctx.shadowBlur=8;for(const [a,b] of edges){ctx.beginPath();ctx.moveTo(...points[a]);ctx.lineTo(...points[b]);ctx.stroke()}ctx.shadowBlur=0;ctx.fillStyle=color;ctx.font='bold 12px Segoe UI';ctx.fillText('NOVA',10,20);requestAnimationFrame(drawCube)}
+async function refreshStatus(){const data=await api('/api/status');setBackendReady(true);state.voiceRunning=!!data.voiceRunning;state.passphraseConfigured=!!data.security.passphraseConfigured;voiceButton.classList.toggle('active',state.voiceRunning);voiceButton.textContent=state.voiceRunning?'停止語音（停止收音）':'啟動語音（開始收音）';const pending=data.pendingWhitelist?'\n等待密語：'+data.pendingWhitelistTarget:'';meta.textContent='模型：'+data.model+'\n資料：'+data.dataPath+'\n長期記憶：'+data.memoryPath+'\nOllama：'+(data.ollamaAvailable?'已連線':'未連線（將使用內建規則）')+pending;if(data.pendingWhitelist)setStatus('等待密語確認：請輸入或說出密語。');if(!data.security.fileSearchConsentAsked)byId('consentModal').classList.add('open');return data}
+async function refreshHabits(){try{const data=await api('/api/habits');habitBox.value=data.report}catch(error){habitBox.value='讀取習慣失敗：'+error.message}}
+let eventsPollInFlight=false;
+async function pollEvents(){if(eventsPollInFlight)return;eventsPollInFlight=true;try{const data=await api('/api/voice/events');for(const item of data.items||[]){const type=item.Type||item.type,message=(item.Message!==undefined?item.Message:(item.message||'')),source=item.Source||item.source||'backend';if(type==='user')addChat(source==='voice'?'語音':'你',message,'user');else if(type==='assistant')addChat('NOVA',message);else if(type==='status'){setStatus(message);if(/語音已停止|啟動失敗|麥克風啟動失敗|Whisper .*載入失敗/.test(message)){state.voiceRunning=false;voiceButton.classList.remove('active');voiceButton.textContent='啟動語音（開始收音）'}}}}catch(error){setBackendReady(false);state.voiceRunning=false;voiceButton.classList.remove('active');voiceButton.textContent='啟動語音（開始收音）';setStatus('後端事件連線失敗，請啟動後端 CMD。')}finally{eventsPollInFlight=false}}
+async function sendCommand(){if(!state.backendReady){setStatus('請先啟動後端 CMD。');return}const text=commandInput.value.trim();if(!text)return;commandInput.value='';setStatus('後端執行中…');try{await api('/api/command',{method:'POST',body:JSON.stringify({text,source:'text'})});await refreshHabits()}catch(error){addChat('NOVA','執行失敗：'+error.message,'error');setStatus('後端執行失敗。')}}
+async function toggleVoice(){if(!state.backendReady){setStatus('請先啟動後端 CMD。');return}try{if(state.voiceRunning){await api('/api/voice/stop',{method:'POST'});state.voiceRunning=false;voiceButton.classList.remove('active');voiceButton.textContent='啟動語音（開始收音）';setStatus('語音已停止，麥克風未收音。')}else{setStatus('正在啟動語音，準備開始收音…');const data=await api('/api/voice/start',{method:'POST'});state.voiceRunning=data.ok;voiceButton.classList.toggle('active',state.voiceRunning);voiceButton.textContent=state.voiceRunning?'停止語音（停止收音）':'啟動語音（開始收音）';if(!state.voiceRunning)setStatus('語音啟動失敗。')}}catch(error){addChat('NOVA','語音操作失敗：'+error.message,'error');setStatus('語音操作失敗。')}}
+async function verifyPassphrase(){const current=byId('passphraseCurrent').value,result=byId('passphraseResult');if(!current){result.textContent='請先輸入前次密語。';return}result.textContent='驗證中…';try{const data=await api('/api/security/passphrase/verify',{method:'POST',body:JSON.stringify({current})});state.passphraseUnlocked=true;byId('passphraseNewGroup').style.display='block';byId('passphraseVerify').style.display='none';byId('passphraseSave').style.display='inline-block';result.textContent=data.message;byId('passphraseFirst').focus()}catch(error){state.passphraseUnlocked=false;byId('passphraseNewGroup').style.display='none';byId('passphraseSave').style.display='none';result.textContent=error.message}}
+async function savePassphrase(){const current=byId('passphraseCurrent').value,first=byId('passphraseFirst').value,second=byId('passphraseSecond').value,result=byId('passphraseResult');if(state.passphraseConfigured&&!state.passphraseUnlocked){result.textContent='請先驗證前次密語。';return}result.textContent='儲存中…';try{const data=await api('/api/security/passphrase',{method:'POST',body:JSON.stringify({current,first,second})});result.textContent=data.message;if(data.ok){byId('passphraseCurrent').value='';byId('passphraseFirst').value='';byId('passphraseSecond').value='';state.passphraseConfigured=true;state.passphraseUnlocked=false;setTimeout(()=>byId('passphraseModal').classList.remove('open'),500);setStatus(data.message)}}catch(error){result.textContent=error.message}}
+async function exportMemory(){try{const data=await api('/api/memory/export',{method:'POST',body:'{}'});setStatus(data.message)}catch(error){setStatus('匯出長期記憶失敗：'+error.message)}}
+async function resetMemory(){const code=byId('resetCode').value,result=byId('resetResult');if(code!=='789'){result.textContent='驗證碼不正確，沒有清除任何資料。';return}result.textContent='重置中…';try{const data=await api('/api/test/reset-memory',{method:'POST',body:JSON.stringify({code})});chatLog.replaceChildren();habitBox.value='目前尚未有習慣紀錄。';state.passphraseConfigured=false;state.passphraseUnlocked=false;byId('resetCode').value='';byId('resetModal').classList.remove('open');addChat('NOVA',data.message);setStatus(data.message)}catch(error){result.textContent=error.message}}
+async function setConsent(allowed){try{await api('/api/security/file-search-consent',{method:'POST',body:JSON.stringify({allowed})});byId('consentModal').classList.remove('open');setStatus(allowed?'已允許本機檔案搜尋。':'已拒絕本機檔案搜尋。')}catch(error){setStatus('權限設定失敗：'+error.message)}}
+byId('sendButton').addEventListener('click',sendCommand);commandInput.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();sendCommand()}});voiceButton.addEventListener('click',toggleVoice);byId('refreshButton').addEventListener('click',refreshHabits);byId('exportMemoryButton').addEventListener('click',exportMemory);byId('openDataButton').addEventListener('click',async()=>{try{await api('/api/open-data',{method:'POST'});setStatus('已開啟本機資料夾。')}catch(error){setStatus('開啟資料夾失敗：'+error.message)}});byId('passphraseButton').addEventListener('click',()=>{state.passphraseUnlocked=!state.passphraseConfigured;byId('passphraseCurrentGroup').style.display=state.passphraseConfigured?'block':'none';byId('passphraseNewGroup').style.display=state.passphraseConfigured?'none':'block';byId('passphraseVerify').style.display=state.passphraseConfigured?'inline-block':'none';byId('passphraseSave').style.display=state.passphraseConfigured?'none':'inline-block';byId('passphraseResult').textContent='';byId('passphraseCurrent').value='';byId('passphraseFirst').value='';byId('passphraseSecond').value='';byId('passphraseModal').classList.add('open');(state.passphraseConfigured?byId('passphraseCurrent'):byId('passphraseFirst')).focus()});byId('passphraseCancel').addEventListener('click',()=>{state.passphraseUnlocked=false;byId('passphraseModal').classList.remove('open')});byId('passphraseVerify').addEventListener('click',verifyPassphrase);byId('passphraseSave').addEventListener('click',savePassphrase);byId('consentYes').addEventListener('click',()=>setConsent(true));byId('consentNo').addEventListener('click',()=>setConsent(false));
+let resetClicks=0,resetTimer=null;byId('resetHotspot').addEventListener('click',()=>{resetClicks++;clearTimeout(resetTimer);resetTimer=setTimeout(()=>{resetClicks=0},850);if(resetClicks>=3){resetClicks=0;byId('resetCode').value='';byId('resetResult').textContent='';byId('resetModal').classList.add('open');byId('resetCode').focus()}});byId('resetCancel').addEventListener('click',()=>byId('resetModal').classList.remove('open'));byId('resetSubmit').addEventListener('click',resetMemory);byId('resetCode').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();resetMemory()}});
+addChat('NOVA','本機前端正在連線，後端狀態會顯示在右側。');requestAnimationFrame(drawCube);refreshStatus().then(data=>{addChat('NOVA','後端連線成功。');speak('後端連線成功。');if(!data.pendingWhitelist)setStatus('後端連線成功。');return refreshHabits()}).catch(error=>{setStatus('無法連線到本機後端：'+error.message);addChat('NOVA','請確認 NOVA 後端程序正在執行。','error')});setInterval(pollEvents,450);setInterval(()=>{if(!state.backendReady)refreshStatus().catch(()=>{})},3000);
+</script>
+</body>
+</html>

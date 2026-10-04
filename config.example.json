@@ -1,0 +1,34 @@
+{
+  "Ollama": {
+    "Enabled": true,
+    "BaseUrl": "http://127.0.0.1:11434",
+    "Model": "deepseek-r1:8b",
+    "TimeoutSec": 20
+  },
+  "Security": {
+    "PassphraseHash": "",
+    "FileSearchConsent": null,
+    "FileSearchConsentAsked": false
+  },
+  "HomeAssistant": {
+    "Enabled": false,
+    "BaseUrl": "http://homeassistant.local:8123",
+    "Token": ""
+  },
+  "Devices": [
+    {
+      "Name": "客廳燈",
+      "Aliases": ["客廳燈", "大廳燈"],
+      "EntityId": "light.living_room",
+      "Domain": "light"
+    }
+  ],
+  "AllowedApps": {
+    "記事本": "notepad.exe",
+    "計算機": "calc.exe",
+    "小畫家": "mspaint.exe",
+    "檔案總管": "explorer.exe",
+    "設定": "ms-settings:"
+  },
+  "MemoryAliases": {}
+}

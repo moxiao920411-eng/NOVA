@@ -1,0 +1,22 @@
+# Bundled local runtimes and installers
+runtime/
+OllamaSetup.exe
+
+# Python and local caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local NOVA configuration and runtime data
+config.json
+events.jsonl
+memory.json
+*.log
+
+# Editor and OS files
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
